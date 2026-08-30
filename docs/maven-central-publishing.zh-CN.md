@@ -31,6 +31,13 @@ com.onlikee:light-oss-sdk:0.1.0
 
 ## 本地验证
 
+发布前先运行 SDK 全量测试和当前后端 OpenAPI 合同校验：
+
+```powershell
+mvn.cmd -B clean test
+mvn.cmd -B test "-Dlightoss.openapi.file=../onlikee-light-oss/backend/docs/openapi.apifox.json"
+```
+
 普通开发构建：
 
 ```powershell
