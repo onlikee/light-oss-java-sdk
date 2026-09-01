@@ -69,7 +69,7 @@ public final class ExplorerClient {
     /** Streams a ZIP archive of a folder. */
     public DownloadResponse downloadFolderArchive(String bucket, String path) {
         Map<String, Object> query = Uris.query();
-        query.put("path", Checks.text(path, "path"));
+        query.put("path", Checks.rawText(path, "path"));
         return context.stream(
                 "GET",
                 Uris.endpoint(context.baseUri(), foldersPath(bucket) + "/archive", query),
@@ -198,9 +198,9 @@ public final class ExplorerClient {
     public record CreateFolderRequest(String bucket, String prefix, String name) {
         /** Creates a validated request. */
         public CreateFolderRequest {
-            bucket = Checks.text(bucket, "bucket");
-            prefix = prefix == null ? "" : prefix.trim();
-            name = Checks.text(name, "name");
+            bucket = Checks.rawText(bucket, "bucket");
+            prefix = prefix == null ? "" : prefix;
+            name = Checks.rawText(name, "name");
         }
     }
 
@@ -214,8 +214,8 @@ public final class ExplorerClient {
     public record DeleteFolderRequest(String bucket, String path, boolean recursive) {
         /** Creates a validated request. */
         public DeleteFolderRequest {
-            bucket = Checks.text(bucket, "bucket");
-            path = Checks.text(path, "path");
+            bucket = Checks.rawText(bucket, "bucket");
+            path = Checks.rawText(path, "path");
         }
     }
 
@@ -280,11 +280,11 @@ public final class ExplorerClient {
             SortOrder sortOrder) {
         /** Creates a validated request. */
         public ListEntriesRequest {
-            bucket = Checks.text(bucket, "bucket");
-            prefix = prefix == null ? "" : prefix.trim();
-            search = search == null ? "" : search.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            prefix = prefix == null ? "" : prefix;
+            search = search == null ? "" : search;
             limit = Checks.range(limit, 1, 200, "limit");
-            cursor = cursor == null ? "" : cursor.trim();
+            cursor = cursor == null ? "" : cursor;
             sortBy = Objects.requireNonNull(sortBy, "sortBy");
             sortOrder = Objects.requireNonNull(sortOrder, "sortOrder");
         }
@@ -301,8 +301,8 @@ public final class ExplorerClient {
             private String search = "";
             private int limit = 100;
             private String cursor = "";
-            private SortBy sortBy = SortBy.NAME;
-            private SortOrder sortOrder = SortOrder.ASC;
+            private SortBy sortBy = SortBy.CREATED_AT;
+            private SortOrder sortOrder = SortOrder.DESC;
 
             private Builder(String bucket) {
                 this.bucket = bucket;
@@ -340,7 +340,7 @@ public final class ExplorerClient {
             if (!type.isRequestValue()) {
                 throw new LightOssValidationException("type must be file or directory");
             }
-            path = Checks.text(path, "path");
+            path = Checks.rawText(path, "path");
         }
     }
 

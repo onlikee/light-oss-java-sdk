@@ -128,12 +128,12 @@ public final class RecycleBinClient {
     public record ListRequest(String bucket, int limit, String cursor) {
         /** Creates a validated request. An empty bucket includes every bucket. */
         public ListRequest {
-            bucket = bucket == null ? "" : bucket.trim();
+            bucket = bucket == null ? "" : bucket;
             limit = Checks.range(limit, 1, 100, "limit");
-            cursor = cursor == null ? "" : cursor.trim();
+            cursor = cursor == null ? "" : cursor;
         }
 
-        /** Creates a builder with a default page size of 100. */
+        /** Creates a builder with the backend default page size of 20. */
         public static Builder builder() {
             return new Builder();
         }
@@ -141,7 +141,7 @@ public final class RecycleBinClient {
         /** Builder for {@link ListRequest}. */
         public static final class Builder {
             private String bucket = "";
-            private int limit = 100;
+            private int limit = 20;
             private String cursor = "";
 
             private Builder() {

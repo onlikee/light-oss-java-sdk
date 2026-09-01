@@ -119,7 +119,7 @@ try (var download = client.objects().downloadSigned(signed.path())) {
 Public site routes by ID and absolute custom-domain routes also never carry a Bearer token:
 
 ```java
-try (var page = client.sites().downloadPublished(42, "assets/app.js")) {
+try (var page = client.sites().downloadPublished(42, "guide/")) {
     page.body().transferTo(outputStream);
 }
 
@@ -133,7 +133,8 @@ try (var page = client.sites().downloadDomain(URI.create("https://docs.example.c
 All SDK exceptions are unchecked. `LightOssApiException` provides the HTTP status, backend code,
 service message, and request ID. Transport, timeout, protocol, configuration, and validation
 failures have dedicated exception types. A request ID generated before network I/O is preserved
-on transport failures.
+on transport failures. Status-only and non-JSON website errors use the explicit SDK code
+`sdk_http_error` while retaining their HTTP status.
 
 ```java
 try {

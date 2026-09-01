@@ -11,3 +11,6 @@ All notable changes to this project are documented in this file.
 - Added credential-scope controls, configurable token/request-ID providers, and optional request timeouts.
 - Added JDK HTTP wire, streaming, error, concurrency, and local OpenAPI contract tests.
 - Added English and Simplified Chinese usage documentation.
+- Aligned object, recycle-bin, and explorer defaults with the Go backend contract.
+- Preserved backend-significant request text, supported directory-style site paths and empty index-document defaults, and retained HTTP status for bodyless or non-JSON site errors.
+- Locked direct-upload media types, ZIP headers, site error representations, and HEAD response bodies into the OpenAPI contract tests.

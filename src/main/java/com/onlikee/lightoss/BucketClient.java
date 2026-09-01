@@ -20,7 +20,7 @@ public final class BucketClient {
 
     /** Creates a bucket. */
     public LightOssResponse<Bucket> create(String name) {
-        String checkedName = Checks.text(name, "name");
+        String checkedName = Checks.rawText(name, "name");
         return context.json(
                 "POST",
                 Uris.endpoint(context.baseUri(), "/api/v1/buckets"),
@@ -40,7 +40,7 @@ public final class BucketClient {
     /** Lists buckets matching an optional search string. */
     public LightOssResponse<List<Bucket>> list(String search) {
         Map<String, Object> query = Uris.query();
-        query.put("search", search == null ? "" : search.trim());
+        query.put("search", search == null ? "" : search);
         return context.json(
                 "GET",
                 Uris.endpoint(context.baseUri(), "/api/v1/buckets", query),

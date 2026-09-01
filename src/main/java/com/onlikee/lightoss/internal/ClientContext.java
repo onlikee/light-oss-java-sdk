@@ -98,7 +98,8 @@ public final class ClientContext implements AutoCloseable {
         HttpRequest request = request(method, uri, authMode, body, contentType, headers, requestId);
         HttpResponse<byte[]> response = send(request, HttpResponse.BodyHandlers.ofByteArray(), requestId);
         if (!successStatuses.contains(response.statusCode())) {
-            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"), response.body(), requestId);
+            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"),
+                    response.headers().firstValue("Content-Type"), response.body(), requestId);
         }
         JsonNode root = json.read(response.body(), requestId);
         if (!root.isObject()) {
@@ -110,6 +111,7 @@ public final class ClientContext implements AutoCloseable {
             throw apiError(
                     response.statusCode(),
                     response.headers().firstValue("X-Request-ID"),
+                    response.headers().firstValue("Content-Type"),
                     response.body(),
                     requestId);
         }
@@ -143,7 +145,8 @@ public final class ClientContext implements AutoCloseable {
                 requestId);
         HttpResponse<byte[]> response = send(request, HttpResponse.BodyHandlers.ofByteArray(), requestId);
         if (response.statusCode() != successStatus) {
-            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"), response.body(), requestId);
+            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"),
+                    response.headers().firstValue("Content-Type"), response.body(), requestId);
         }
         if (response.body().length != 0) {
             throw new LightOssProtocolException("no-content response unexpectedly contains a body", requestId);
@@ -173,6 +176,7 @@ public final class ClientContext implements AutoCloseable {
                 throw apiError(
                         response.statusCode(),
                         response.headers().firstValue("X-Request-ID"),
+                        response.headers().firstValue("Content-Type"),
                         body.readAllBytes(),
                         requestId);
             } catch (LightOssException exception) {
@@ -210,7 +214,8 @@ public final class ClientContext implements AutoCloseable {
                 requestId);
         HttpResponse<byte[]> response = send(request, HttpResponse.BodyHandlers.ofByteArray(), requestId);
         if (response.statusCode() != successStatus) {
-            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"), response.body(), requestId);
+            throw apiError(response.statusCode(), response.headers().firstValue("X-Request-ID"),
+                    response.headers().firstValue("Content-Type"), response.body(), requestId);
         }
         String responseRequestId = requiredHeaderRequestId(response.headers().firstValue("X-Request-ID"), requestId);
         return new LightOssResponse<>(contentMetadata(response, responseRequestId), responseRequestId);
@@ -307,14 +312,20 @@ public final class ClientContext implements AutoCloseable {
     private LightOssException apiError(
             int status,
             Optional<String> headerRequestId,
+            Optional<String> contentType,
             byte[] body,
             String generatedRequestId) {
-        if (body.length == 0) {
-            String requestId = headerRequestId.orElse(generatedRequestId);
+        if (body.length == 0 || !isJson(contentType)) {
+            String requestId = headerRequestId
+                    .map(value -> validResponseRequestId(value, generatedRequestId))
+                    .orElse(generatedRequestId);
+            String detail = body.length == 0
+                    ? "without a Light OSS error body"
+                    : "with a non-JSON error body";
             return new LightOssApiException(
                     status,
                     "sdk_http_error",
-                    "HTTP " + status + " returned without a Light OSS error body",
+                    "HTTP " + status + " returned " + detail,
                     requestId);
         }
         JsonNode root = json.read(body, headerRequestId.orElse(generatedRequestId));
@@ -330,6 +341,19 @@ public final class ClientContext implements AutoCloseable {
         String code = json.requiredText(error, "code", envelopeRequestId);
         String message = json.requiredText(error, "message", envelopeRequestId);
         return new LightOssApiException(status, code, message, envelopeRequestId);
+    }
+
+    private static boolean isJson(Optional<String> contentType) {
+        if (contentType.isEmpty()) {
+            return false;
+        }
+        String mediaType = contentType.get();
+        int parameter = mediaType.indexOf(';');
+        if (parameter >= 0) {
+            mediaType = mediaType.substring(0, parameter);
+        }
+        mediaType = mediaType.trim().toLowerCase(java.util.Locale.ROOT);
+        return mediaType.equals("application/json") || mediaType.endsWith("+json");
     }
 
     private String requiredEnvelopeRequestId(JsonNode root, String requestId) {

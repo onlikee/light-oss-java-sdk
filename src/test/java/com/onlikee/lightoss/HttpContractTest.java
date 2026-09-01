@@ -51,14 +51,14 @@ class HttpContractTest {
             assertWire(server, "HEAD", "/sites/1", false);
 
             server.response(200, "path".getBytes(StandardCharsets.UTF_8), Map.of());
-            try (DownloadResponse ignored = client.sites().downloadPublished(1, "assets/app.js")) {
+            try (DownloadResponse ignored = client.sites().downloadPublished(1, "docs/")) {
                 assertNotNull(ignored);
             }
-            assertWire(server, "GET", "/sites/1/assets/app.js", false);
+            assertWire(server, "GET", "/sites/1/docs/", false);
 
             server.response(200, new byte[0], Map.of("ETag", "site-etag"));
-            client.sites().headPublished(1, "assets/app.js");
-            assertWire(server, "HEAD", "/sites/1/assets/app.js", false);
+            client.sites().headPublished(1, " assets/app.js");
+            assertWire(server, "HEAD", "/sites/1/%20assets/app.js", false);
 
             server.json(200, "{\"status\":{\"service\":\"ok\",\"db\":\"ok\"},\"version\":\"v1\"}");
             client.health().health();
@@ -109,7 +109,7 @@ class HttpContractTest {
 
             server.json(200, explorerPage());
             client.explorer().listEntries(ExplorerClient.ListEntriesRequest.builder("demo").build());
-            assertWire(server, "GET", "/api/v1/buckets/demo/entries?limit=100&sort_by=name&sort_order=asc", true);
+            assertWire(server, "GET", "/api/v1/buckets/demo/entries?limit=100&sort_by=created_at&sort_order=desc", true);
 
             server.json(200, "{\"deleted_count\":1,\"failed_count\":0,\"failed_items\":[]}");
             client.explorer().deleteEntries("demo", List.of(new ExplorerClient.DeleteItem(EntryType.FILE, "a.txt")));
@@ -117,7 +117,7 @@ class HttpContractTest {
 
             server.json(200, "{\"items\":[" + OBJECT + "],\"next_cursor\":\"next\"}");
             client.objects().list(ObjectClient.ListObjectsRequest.builder("demo").prefix("dir/").build());
-            assertWire(server, "GET", "/api/v1/buckets/demo/objects?prefix=dir%2F&limit=100", true);
+            assertWire(server, "GET", "/api/v1/buckets/demo/objects?prefix=dir%2F&limit=20", true);
 
             server.json(201, "{\"uploaded_count\":1,\"items\":[" + OBJECT + "]}");
             client.objects().uploadBatch(ObjectClient.UploadBatchRequest.builder(
@@ -153,7 +153,7 @@ class HttpContractTest {
 
             server.json(200, "{\"items\":[],\"next_cursor\":\"\"}");
             client.recycleBin().list(RecycleBinClient.ListRequest.builder().bucket("demo").build());
-            assertWire(server, "GET", "/api/v1/recycle-bin/objects?bucket=demo&limit=100", true);
+            assertWire(server, "GET", "/api/v1/recycle-bin/objects?bucket=demo&limit=20", true);
 
             server.json(200, "{\"restored_count\":1,\"failed_count\":0,\"failed_items\":[]}");
             client.recycleBin().restore(List.of(1L));

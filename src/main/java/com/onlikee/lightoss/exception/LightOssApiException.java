@@ -25,7 +25,7 @@ public final class LightOssApiException extends LightOssException {
         return statusCode;
     }
 
-    /** Returns the backend error code, or {@code sdk_http_error} for a bodyless HTTP error. */
+    /** Returns the backend error code, or {@code sdk_http_error} for a bodyless or non-JSON HTTP error. */
     public String code() {
         return code;
     }

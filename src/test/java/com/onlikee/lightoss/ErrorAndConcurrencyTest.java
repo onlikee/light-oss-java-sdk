@@ -60,6 +60,21 @@ class ErrorAndConcurrencyTest {
     }
 
     @Test
+    void nonJsonPublicSiteErrorKeepsHttpStatusAndExplicitSdkCode() throws Exception {
+        try (TestHttpServer server = new TestHttpServer();
+             LightOssClient client = authorized(server)) {
+            server.response(404, "<h1>missing</h1>".getBytes(StandardCharsets.UTF_8),
+                    Map.of("Content-Type", "text/html; charset=utf-8"));
+            LightOssApiException exception = assertThrows(
+                    LightOssApiException.class, () -> client.sites().downloadPublished(1, "missing.html"));
+            assertEquals(404, exception.statusCode());
+            assertEquals("sdk_http_error", exception.code());
+            assertEquals("request-1", exception.requestId().orElseThrow());
+            assertEquals(null, server.lastRequest().header("Authorization"));
+        }
+    }
+
+    @Test
     void detectsMalformedJsonAndRequestIdMismatch() throws Exception {
         try (TestHttpServer server = new TestHttpServer();
              LightOssClient client = authorized(server)) {

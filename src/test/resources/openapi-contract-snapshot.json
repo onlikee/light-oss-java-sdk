@@ -47,6 +47,14 @@
     "siteManifestMax": 2000,
     "explorerBatchMax": 200,
     "recycleBatchMax": 200,
-    "explorerEntryTypes": ["directory", "file"]
+    "explorerEntryTypes": ["directory", "file"],
+    "objectListDefault": 20,
+    "recycleListDefault": 20,
+    "explorerSortByDefault": "created_at",
+    "explorerSortOrderDefault": "desc",
+    "directUploadMediaType": "*/*",
+    "folderArchiveContentDisposition": true,
+    "headResponsesHaveBodies": false,
+    "siteInternalErrorHasBody": false
   }
 }

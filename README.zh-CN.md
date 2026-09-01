@@ -110,7 +110,7 @@ try (var download = client.objects().downloadSigned(signed.path())) {
 按站点 ID 访问公开路由、访问绝对自定义域名 URI 时同样不会携带 Bearer：
 
 ```java
-try (var page = client.sites().downloadPublished(42, "assets/app.js")) {
+try (var page = client.sites().downloadPublished(42, "guide/")) {
     page.body().transferTo(outputStream);
 }
 
@@ -123,7 +123,8 @@ try (var page = client.sites().downloadDomain(URI.create("https://docs.example.c
 
 所有 SDK 异常都是非受检异常。`LightOssApiException` 提供 HTTP 状态、后端 code、服务消息和
 request ID；传输、超时、协议、配置和参数校验都有独立异常类型。发生网络故障时，异常仍会携带
-发起请求前生成的 request ID。
+发起请求前生成的 request ID。仅含状态码或非 JSON 的站点错误使用明确的 SDK code
+`sdk_http_error`，同时保留 HTTP 状态。
 
 ```java
 try {

@@ -209,7 +209,10 @@ public final class SiteClient {
     private URI publicSiteUri(long siteId, String path) {
         String suffix = "/sites/" + Checks.positive(siteId, "siteId");
         if (path != null && !path.isBlank()) {
-            suffix += "/" + Uris.objectKey(path);
+            String encodedPath = Uris.sitePath(path);
+            if (!encodedPath.isEmpty()) {
+                suffix += "/" + encodedPath;
+            }
         }
         return Uris.endpoint(context.baseUri(), suffix);
     }
@@ -220,7 +223,7 @@ public final class SiteClient {
 
     private static List<String> domains(List<String> domains, boolean required) {
         Objects.requireNonNull(domains, "domains");
-        List<String> copy = domains.stream().map(domain -> Checks.text(domain, "domain")).toList();
+        List<String> copy = domains.stream().map(domain -> Checks.rawText(domain, "domain")).toList();
         if (required && copy.isEmpty()) {
             throw new LightOssValidationException("domains must contain at least one item");
         }
@@ -285,10 +288,10 @@ public final class SiteClient {
             List<String> domains) {
         /** Creates a validated request. */
         public SiteRequest {
-            bucket = Checks.text(bucket, "bucket");
-            rootPrefix = rootPrefix == null ? "" : rootPrefix.trim();
-            indexDocument = Checks.text(indexDocument, "indexDocument");
-            errorDocument = errorDocument == null ? "" : errorDocument.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            rootPrefix = rootPrefix == null ? "" : rootPrefix;
+            indexDocument = indexDocument == null ? "" : indexDocument;
+            errorDocument = errorDocument == null ? "" : errorDocument;
             domains = SiteClient.domains(domains, false);
         }
 
@@ -311,7 +314,7 @@ public final class SiteClient {
             public Builder rootPrefix(String value) { rootPrefix = value; return this; }
             /** Enables or disables public serving. */
             public Builder enabled(boolean value) { enabled = value; return this; }
-            /** Sets the index document. */
+            /** Sets the index document; an empty value uses the backend default. */
             public Builder indexDocument(String value) { indexDocument = value; return this; }
             /** Sets the optional error document. */
             public Builder errorDocument(String value) { errorDocument = value; return this; }
@@ -349,10 +352,10 @@ public final class SiteClient {
             List<ObjectClient.UploadItem> items) {
         /** Creates a validated request. */
         public PublishRequest {
-            bucket = Checks.text(bucket, "bucket");
-            parentPrefix = parentPrefix == null ? "" : parentPrefix.trim();
-            indexDocument = Checks.text(indexDocument, "indexDocument");
-            errorDocument = errorDocument == null ? "" : errorDocument.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            parentPrefix = parentPrefix == null ? "" : parentPrefix;
+            indexDocument = indexDocument == null ? "" : indexDocument;
+            errorDocument = errorDocument == null ? "" : errorDocument;
             domains = SiteClient.domains(domains, true);
             items = Checks.list(items, 1, 2000, "items");
             Set<String> paths = new HashSet<>();
@@ -387,7 +390,7 @@ public final class SiteClient {
             public Builder parentPrefix(String v) { parentPrefix = v; return this; }
             /** Enables or disables public serving. */
             public Builder enabled(boolean v) { enabled = v; return this; }
-            /** Sets the index document within the uploaded root. */
+            /** Sets the index document within the uploaded root; an empty value uses the backend default. */
             public Builder indexDocument(String v) { indexDocument = v; return this; }
             /** Sets the optional error document. */
             public Builder errorDocument(String v) { errorDocument = v; return this; }
@@ -433,9 +436,9 @@ public final class SiteClient {
             UploadSource source) {
         /** Creates a validated request. */
         public PublishFileRequest {
-            bucket = Checks.text(bucket, "bucket");
-            parentPrefix = parentPrefix == null ? "" : parentPrefix.trim();
-            errorDocument = errorDocument == null ? "" : errorDocument.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            parentPrefix = parentPrefix == null ? "" : parentPrefix;
+            errorDocument = errorDocument == null ? "" : errorDocument;
             domains = SiteClient.domains(domains, true);
             source = Objects.requireNonNull(source, "source");
         }
@@ -487,10 +490,10 @@ public final class SiteClient {
             List<String> domains) {
         /** Creates a validated request. */
         public PublishObjectRequest {
-            bucket = Checks.text(bucket, "bucket");
-            objectKey = Checks.text(objectKey, "objectKey");
+            bucket = Checks.rawText(bucket, "bucket");
+            objectKey = Checks.rawText(objectKey, "objectKey");
             Uris.objectKey(objectKey);
-            errorDocument = errorDocument == null ? "" : errorDocument.trim();
+            errorDocument = errorDocument == null ? "" : errorDocument;
             domains = SiteClient.domains(domains, true);
         }
 

@@ -47,8 +47,8 @@ public final class SigningClient {
      */
     public record SignDownloadRequest(String bucket, String objectKey, Duration expiresIn) {
         public SignDownloadRequest {
-            bucket = Checks.text(bucket, "bucket");
-            objectKey = Checks.text(objectKey, "objectKey");
+            bucket = Checks.rawText(bucket, "bucket");
+            objectKey = Checks.rawText(objectKey, "objectKey");
             Uris.objectKey(objectKey);
             if (expiresIn != null) {
                 expiresIn = Checks.positive(expiresIn, "expiresIn");

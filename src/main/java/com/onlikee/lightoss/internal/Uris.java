@@ -44,11 +44,11 @@ public final class Uris {
     }
 
     public static String segment(String value) {
-        return encode(Checks.text(value, "path segment"));
+        return encode(Checks.rawText(value, "path segment"));
     }
 
     public static String objectKey(String value) {
-        String key = Checks.text(value, "objectKey");
+        String key = Checks.rawText(value, "objectKey");
         if (key.length() > 512 || key.indexOf('\0') >= 0 || key.indexOf('\\') >= 0) {
             throw new LightOssValidationException("objectKey contains unsupported characters or exceeds 512 characters");
         }
@@ -62,6 +62,35 @@ public final class Uris {
                 result.append('/');
             }
             result.append(encode(segments[index]));
+        }
+        return result.toString();
+    }
+
+    public static String sitePath(String value) {
+        String path = ("/" + Checks.rawText(value, "site path")).strip();
+        if (path.equals("/")) {
+            return "";
+        }
+        if (path.indexOf('\0') >= 0 || path.indexOf('\\') >= 0) {
+            throw new LightOssValidationException("site path contains unsupported characters");
+        }
+        boolean directory = path.endsWith("/");
+        String[] segments = path.split("/", -1);
+        StringBuilder result = new StringBuilder();
+        for (String segment : segments) {
+            if (segment.isEmpty()) {
+                continue;
+            }
+            if (segment.equals(".") || segment.equals("..")) {
+                throw new LightOssValidationException("site path contains an invalid path segment");
+            }
+            if (!result.isEmpty()) {
+                result.append('/');
+            }
+            result.append(encode(segment));
+        }
+        if (directory && !result.isEmpty()) {
+            result.append('/');
         }
         return result.toString();
     }

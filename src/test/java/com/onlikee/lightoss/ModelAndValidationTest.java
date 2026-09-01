@@ -96,6 +96,30 @@ class ModelAndValidationTest {
     }
 
     @Test
+    void requestDefaultsAndRawValuesMatchBackendSemantics() {
+        ObjectClient.ListObjectsRequest objects = ObjectClient.ListObjectsRequest.builder("demo").build();
+        assertEquals(20, objects.limit());
+        RecycleBinClient.ListRequest recycle = RecycleBinClient.ListRequest.builder().build();
+        assertEquals(20, recycle.limit());
+        ExplorerClient.ListEntriesRequest explorer = ExplorerClient.ListEntriesRequest.builder("demo").build();
+        assertEquals(ExplorerClient.SortBy.CREATED_AT, explorer.sortBy());
+        assertEquals(ExplorerClient.SortOrder.DESC, explorer.sortOrder());
+
+        ObjectClient.ListObjectsRequest raw = new ObjectClient.ListObjectsRequest(
+                " demo ", " docs/ ", 20, " cursor ");
+        assertEquals(" demo ", raw.bucket());
+        assertEquals(" docs/ ", raw.prefix());
+        assertEquals(" cursor ", raw.cursor());
+        assertEquals(" key ", ObjectClient.DownloadObjectRequest.builder("demo", " key ").build().key());
+
+        assertEquals("", SiteClient.SiteRequest.builder("demo").indexDocument("").build().indexDocument());
+        ObjectClient.UploadItem item = new ObjectClient.UploadItem(
+                "index.html", UploadSource.fromBytes("index.html", "text/html", new byte[0]));
+        assertEquals("", SiteClient.PublishRequest.builder("demo", List.of("demo.localhost"), List.of(item))
+                .indexDocument("").build().indexDocument());
+    }
+
+    @Test
     void clientBuilderEnforcesOriginAndMutualExclusion() {
         assertThrows(LightOssValidationException.class,
                 () -> LightOssClient.builder(URI.create("https://example.com/api")));

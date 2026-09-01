@@ -196,13 +196,13 @@ public final class ObjectClient {
     public record ListObjectsRequest(String bucket, String prefix, int limit, String cursor) {
         /** Creates a validated request. */
         public ListObjectsRequest {
-            bucket = Checks.text(bucket, "bucket");
-            prefix = prefix == null ? "" : prefix.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            prefix = prefix == null ? "" : prefix;
             limit = Checks.range(limit, 1, 100, "limit");
-            cursor = cursor == null ? "" : cursor.trim();
+            cursor = cursor == null ? "" : cursor;
         }
 
-        /** Creates a builder with a default page size of 100. */
+        /** Creates a builder with the backend default page size of 20. */
         public static Builder builder(String bucket) {
             return new Builder(bucket);
         }
@@ -211,7 +211,7 @@ public final class ObjectClient {
         public static final class Builder {
             private final String bucket;
             private String prefix = "";
-            private int limit = 100;
+            private int limit = 20;
             private String cursor = "";
 
             private Builder(String bucket) {
@@ -262,8 +262,8 @@ public final class ObjectClient {
             boolean allowOverwrite) {
         /** Creates a validated request. */
         public UploadObjectRequest {
-            bucket = Checks.text(bucket, "bucket");
-            key = Checks.text(key, "key");
+            bucket = Checks.rawText(bucket, "bucket");
+            key = Checks.rawText(key, "key");
             Uris.objectKey(key);
             source = Objects.requireNonNull(source, "source");
             originalFilename = Checks.text(originalFilename, "originalFilename");
@@ -348,8 +348,8 @@ public final class ObjectClient {
             List<UploadItem> items) {
         /** Creates a validated request. */
         public UploadBatchRequest {
-            bucket = Checks.text(bucket, "bucket");
-            prefix = prefix == null ? "" : prefix.trim();
+            bucket = Checks.rawText(bucket, "bucket");
+            prefix = prefix == null ? "" : prefix;
             visibility = requestVisibility(visibility);
             items = Checks.list(items, 1, 2000, "items");
             Set<String> paths = new HashSet<>();
@@ -426,8 +426,8 @@ public final class ObjectClient {
     public record DownloadObjectRequest(String bucket, String key, boolean forceDownload) {
         /** Creates a validated request. */
         public DownloadObjectRequest {
-            bucket = Checks.text(bucket, "bucket");
-            key = Checks.text(key, "key");
+            bucket = Checks.rawText(bucket, "bucket");
+            key = Checks.rawText(key, "key");
             Uris.objectKey(key);
         }
 

@@ -19,6 +19,14 @@ public final class Checks {
         return trimmed;
     }
 
+    public static String rawText(String value, String name) {
+        Objects.requireNonNull(value, name);
+        if (value.isBlank()) {
+            throw new LightOssValidationException(name + " must not be blank");
+        }
+        return value;
+    }
+
     public static String headerValue(String value, String name) {
         String checked = text(value, name);
         if (checked.indexOf('\r') >= 0 || checked.indexOf('\n') >= 0) {

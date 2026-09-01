@@ -1,6 +1,7 @@
 package com.onlikee.lightoss;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -73,6 +74,14 @@ class OpenApiContractTest {
         assertEquals(200, contracts.get("explorerBatchMax").intValue());
         assertEquals(200, contracts.get("recycleBatchMax").intValue());
         assertEquals(Set.of("directory", "file"), strings(contracts.get("explorerEntryTypes")));
+        assertEquals(20, contracts.get("objectListDefault").intValue());
+        assertEquals(20, contracts.get("recycleListDefault").intValue());
+        assertEquals("created_at", contracts.get("explorerSortByDefault").stringValue());
+        assertEquals("desc", contracts.get("explorerSortOrderDefault").stringValue());
+        assertEquals("*/*", contracts.get("directUploadMediaType").stringValue());
+        assertTrue(contracts.get("folderArchiveContentDisposition").booleanValue());
+        assertFalse(contracts.get("headResponsesHaveBodies").booleanValue());
+        assertFalse(contracts.get("siteInternalErrorHasBody").booleanValue());
     }
 
     private static void validateOpenApi(JsonNode document) {
@@ -107,6 +116,39 @@ class OpenApiContractTest {
         assertArrayBounds(explorerItems, 1, 200);
         assertEquals(Set.of("directory", "file"),
                 strings(schemas.get("ExplorerEntry").get("properties").get("type").get("enum")));
+
+        JsonNode parameters = document.get("components").get("parameters");
+        assertEquals(20, parameters.get("ObjectListLimitQuery").get("schema").get("default").intValue());
+        assertEquals("created_at", parameters.get("ExplorerSortByQuery").get("schema").get("default").stringValue());
+        assertEquals("desc", parameters.get("ExplorerSortOrderQuery").get("schema").get("default").stringValue());
+
+        JsonNode objectPath = paths.get("/api/v1/buckets/{bucket}/objects/{key}");
+        JsonNode uploadContent = objectPath.get("put").get("requestBody").get("content");
+        assertEquals(Set.of("*/*"), propertyNames(uploadContent));
+
+        JsonNode archiveSuccess = paths.get("/api/v1/buckets/{bucket}/folders/archive")
+                .get("get").get("responses").get("200");
+        assertTrue(archiveSuccess.get("headers").has("Content-Disposition"));
+
+        assertHeadHasNoResponseBodies(objectPath.get("head"));
+        assertHeadHasNoResponseBodies(paths.get("/sites/{siteID}").get("head"));
+        assertHeadHasNoResponseBodies(paths.get("/sites/{siteID}/{path}").get("head"));
+        assertSiteErrorRepresentations(paths.get("/sites/{siteID}").get("get"));
+        assertSiteErrorRepresentations(paths.get("/sites/{siteID}/{path}").get("get"));
+    }
+
+    private static void assertHeadHasNoResponseBodies(JsonNode operation) {
+        for (JsonNode response : operation.get("responses")) {
+            assertFalse(response.has("content"), operation.get("operationId").stringValue());
+        }
+    }
+
+    private static void assertSiteErrorRepresentations(JsonNode operation) {
+        JsonNode responses = operation.get("responses");
+        assertFalse(responses.get("500").has("content"), operation.get("operationId").stringValue());
+        JsonNode unavailable = responses.get("503");
+        assertTrue(unavailable.get("description").stringValue().contains("status-only"));
+        assertTrue(unavailable.get("content").has("application/json"));
     }
 
     private static void assertArrayBounds(JsonNode node, int min, int max) {
@@ -131,6 +173,14 @@ class OpenApiContractTest {
         Set<String> result = new HashSet<>();
         for (JsonNode item : array) {
             result.add(item.stringValue());
+        }
+        return result;
+    }
+
+    private static Set<String> propertyNames(JsonNode object) {
+        Set<String> result = new HashSet<>();
+        for (Map.Entry<String, JsonNode> property : ((ObjectNode) object).properties()) {
+            result.add(property.getKey());
         }
         return result;
     }

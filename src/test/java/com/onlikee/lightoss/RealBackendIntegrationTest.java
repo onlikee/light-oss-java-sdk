@@ -151,11 +151,14 @@ class RealBackendIntegrationTest {
 
             uploadPublic(client, bucket, "manual/index.html", "<html>manual</html>");
             uploadPublic(client, bucket, "manual/assets/app.js", "console.log('manual')");
+            uploadPublic(client, bucket, "manual/docs/index.html", "<html>docs</html>");
             SiteClient.Site manualSite = response(client.sites().create(SiteClient.SiteRequest.builder(bucket)
                     .rootPrefix("manual/")
+                    .indexDocument("")
                     .domains(List.of(manualDomain))
                     .build()));
             siteIds.add(manualSite.id());
+            assertEquals("index.html", manualSite.indexDocument());
             assertEquals(manualSite.id(), response(client.sites().get(manualSite.id())).id());
             assertTrue(response(client.sites().list()).stream().anyMatch(site -> site.id() == manualSite.id()));
             SiteClient.Site updatedSite = response(client.sites().update(manualSite.id(),
@@ -176,6 +179,9 @@ class RealBackendIntegrationTest {
             }
             assertTrue(response(client.sites().headPublished(manualSite.id(), "assets/app.js"))
                     .contentLength().orElseThrow() > 0);
+            try (DownloadResponse directory = client.sites().downloadPublished(manualSite.id(), "docs/")) {
+                assertEquals("<html>docs</html>", utf8(directory));
+            }
             verifyCustomDomainRoute(baseUri, manualDomain, "<html>manual</html>");
 
             String batchDomain = "batch-" + suffix + ".sdk.test";
