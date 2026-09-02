@@ -3,7 +3,7 @@
 [Chinese documentation](README.zh-CN.md)
 
 The synchronous Java 21 SDK for the Light OSS HTTP API. This library targets the Light OSS
-Go/Gin API; it is not an Amazon S3 client. Version 0.1.0 covers all 38 documented OpenAPI
+Go/Gin API; it is not an Amazon S3 client. Version 0.2.0 covers all 38 documented OpenAPI
 operations plus public custom-domain site GET and HEAD routing.
 
 ## Requirements and dependency
@@ -15,7 +15,7 @@ operations plus public custom-domain site GET and HEAD routing.
 <dependency>
   <groupId>com.onlikee</groupId>
   <artifactId>light-oss-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
@@ -180,7 +180,7 @@ packaging is documented in [docs/maven-central-publishing.zh-CN.md](docs/maven-c
 
 ## Compatibility
 
-The 0.1.x line treats published public signatures as stable. Public APIs are not removed or
+The 0.2.x line treats published public signatures as stable. Public APIs are not removed or
 changed incompatibly except when required by a security issue or a breaking backend contract.
 
 ## License
