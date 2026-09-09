@@ -9,7 +9,6 @@ import com.onlikee.lightoss.model.EntryType;
 import com.onlikee.lightoss.model.Visibility;
 import com.onlikee.lightoss.transfer.DownloadResponse;
 import com.onlikee.lightoss.transfer.UploadSource;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
