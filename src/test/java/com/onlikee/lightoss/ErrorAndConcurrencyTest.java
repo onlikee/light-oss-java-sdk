@@ -147,7 +147,7 @@ class ErrorAndConcurrencyTest {
              LightOssClient client = authorized(server)) {
             server.response(200, "signed".getBytes(StandardCharsets.UTF_8), Map.of());
             try (var download = client.objects().downloadSigned(
-                    java.net.URI.create("/api/v1/buckets/demo/objects/a.txt?expires=1&signature=x"))) {
+                    java.net.URI.create("/api/v1/buckets/demo/objects/a.txt?token=x"))) {
                 assertEquals("signed", new String(download.body().readAllBytes(), StandardCharsets.UTF_8));
             }
             assertEquals(null, server.lastRequest().header("Authorization"));

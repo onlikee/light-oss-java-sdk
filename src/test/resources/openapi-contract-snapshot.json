@@ -24,7 +24,7 @@
     ["POST", "/api/v1/buckets/{bucket}/objects/batch", "uploadObjectBatch", "bearer"],
     ["GET", "/api/v1/buckets/{bucket}/objects/{key}", "downloadObject", "none"],
     ["HEAD", "/api/v1/buckets/{bucket}/objects/{key}", "headObject", "none"],
-    ["PUT", "/api/v1/buckets/{bucket}/objects/{key}", "uploadObject", "bearer"],
+    ["PUT", "/api/v1/buckets/{bucket}/objects/{key}", "uploadObject", "bearer_or_signed_upload"],
     ["DELETE", "/api/v1/buckets/{bucket}/objects/{key}", "deleteObject", "bearer"],
     ["PATCH", "/api/v1/buckets/{bucket}/objects/visibility/{key}", "updateObjectVisibility", "bearer"],
     ["GET", "/api/v1/recycle-bin/objects", "listRecycleBinObjects", "bearer"],
@@ -38,7 +38,8 @@
     ["GET", "/api/v1/sites/{siteID}", "getSite", "bearer"],
     ["PUT", "/api/v1/sites/{siteID}", "updateSite", "bearer"],
     ["DELETE", "/api/v1/sites/{siteID}", "deleteSite", "bearer"],
-    ["POST", "/api/v1/sign/download", "signDownload", "bearer"]
+    ["POST", "/api/v1/sign/download", "signDownload", "bearer"],
+    ["POST", "/api/v1/sign/upload", "signUpload", "bearer"]
   ],
   "contracts": {
     "uploadManifestMin": 1,

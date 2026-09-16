@@ -78,6 +78,14 @@ class RealBackendIntegrationTest {
                     .build();
             assertEquals("single.txt", response(client.objects().upload(singleUpload)).objectKey());
 
+            UploadSource signedSource = bytes("signed.txt", "text/plain", "signed-content");
+            var signedUpload = response(client.signing().signUpload(SigningClient.SignUploadRequest
+                    .builder(bucket, "signed.txt", signedSource.contentLength().orElseThrow())
+                    .originalFilename(signedSource.filename())
+                    .contentType(signedSource.contentType())
+                    .build()));
+            assertEquals("signed.txt", response(client.objects().uploadSigned(signedUpload, signedSource)).objectKey());
+
             ObjectClient.BatchUploadResult batchUpload = response(client.objects().uploadBatch(
                     ObjectClient.UploadBatchRequest.builder(bucket, List.of(
                                     item("a.txt", "alpha"),

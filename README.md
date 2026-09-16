@@ -101,7 +101,23 @@ var result = client.objects().uploadBatch(
 Explorer and recycle-bin batch results expose `failedItems`; they do not convert the backend's
 per-item result into an all-or-nothing SDK result.
 
-## Signed and public-site downloads
+## Signed uploads, downloads, and public sites
+
+Signed uploads reuse the same streamed source and object response as authenticated uploads. The
+SDK sends the returned path and headers without attaching its configured Bearer token:
+
+```java
+var source = UploadSource.fromPath(Path.of("report.pdf"), "application/pdf");
+var signedUpload = client.signing().signUpload(
+        SigningClient.SignUploadRequest.builder("documents", "reports/2026.pdf", source.contentLength().orElseThrow())
+                .originalFilename(source.filename())
+                .contentType(source.contentType())
+                .build()).data();
+var object = client.objects().uploadSigned(signedUpload, source).data();
+```
+
+The signed maximum is an upper bound, so unknown-length streaming sources remain supported when
+the issuer selects an appropriate limit.
 
 Signing returns a relative URI. Passing it to `downloadSigned` deliberately suppresses Bearer
 credentials:

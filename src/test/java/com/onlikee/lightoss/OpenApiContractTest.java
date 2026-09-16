@@ -50,7 +50,7 @@ class OpenApiContractTest {
     private static void validateCompactSnapshot(JsonNode snapshot) {
         Map<String, ExpectedOperation> expected = expectedOperations();
         JsonNode operations = snapshot.get("operations");
-        assertEquals(38, operations.size());
+        assertEquals(expected.size(), operations.size());
         Set<String> seen = new HashSet<>();
         for (JsonNode operation : operations) {
             String method = operation.get(0).stringValue();
@@ -159,10 +159,17 @@ class OpenApiContractTest {
         if (security == null || security.isEmpty()) {
             return "none";
         }
+        Set<String> schemes = new HashSet<>();
         for (JsonNode requirement : security) {
-            if (requirement.has("bearerAuth")) {
-                return "bearer";
+            for (Map.Entry<String, JsonNode> property : ((ObjectNode) requirement).properties()) {
+                schemes.add(property.getKey());
             }
+        }
+        if (schemes.equals(Set.of("bearerAuth"))) {
+            return "bearer";
+        }
+        if (schemes.equals(Set.of("bearerAuth", "signedUpload"))) {
+            return "bearer_or_signed_upload";
         }
         return "other";
     }
@@ -208,7 +215,7 @@ class OpenApiContractTest {
         add(expected, "POST", "/api/v1/buckets/{bucket}/objects/batch", "uploadObjectBatch", "bearer");
         add(expected, "GET", "/api/v1/buckets/{bucket}/objects/{key}", "downloadObject", "none");
         add(expected, "HEAD", "/api/v1/buckets/{bucket}/objects/{key}", "headObject", "none");
-        add(expected, "PUT", "/api/v1/buckets/{bucket}/objects/{key}", "uploadObject", "bearer");
+        add(expected, "PUT", "/api/v1/buckets/{bucket}/objects/{key}", "uploadObject", "bearer_or_signed_upload");
         add(expected, "DELETE", "/api/v1/buckets/{bucket}/objects/{key}", "deleteObject", "bearer");
         add(expected, "PATCH", "/api/v1/buckets/{bucket}/objects/visibility/{key}", "updateObjectVisibility", "bearer");
         add(expected, "GET", "/api/v1/recycle-bin/objects", "listRecycleBinObjects", "bearer");
@@ -223,6 +230,7 @@ class OpenApiContractTest {
         add(expected, "PUT", "/api/v1/sites/{siteID}", "updateSite", "bearer");
         add(expected, "DELETE", "/api/v1/sites/{siteID}", "deleteSite", "bearer");
         add(expected, "POST", "/api/v1/sign/download", "signDownload", "bearer");
+        add(expected, "POST", "/api/v1/sign/upload", "signUpload", "bearer");
         return Map.copyOf(expected);
     }
 

@@ -9,6 +9,7 @@ import com.onlikee.lightoss.internal.SourceBodyPublishers;
 import com.onlikee.lightoss.internal.Uris;
 import com.onlikee.lightoss.model.ObjectInfo;
 import com.onlikee.lightoss.model.Page;
+import com.onlikee.lightoss.model.SignedUpload;
 import com.onlikee.lightoss.model.Visibility;
 import com.onlikee.lightoss.transfer.ContentMetadata;
 import com.onlikee.lightoss.transfer.DownloadResponse;
@@ -69,6 +70,27 @@ public final class ObjectClient {
                         "X-Object-Visibility", request.visibility().value(),
                         "X-Allow-Overwrite", Boolean.toString(request.allowOverwrite()),
                         "X-Original-Filename", Uris.encodeHeaderFilename(request.originalFilename())),
+                201,
+                (data, requestId) -> Parsers.object(context.json(), data, requestId));
+    }
+
+    /** Uploads a source using an authorization returned by {@link SigningClient#signUpload}. */
+    public LightOssResponse<ObjectInfo> uploadSigned(SignedUpload signedUpload, UploadSource source) {
+        Objects.requireNonNull(signedUpload, "signedUpload");
+        Objects.requireNonNull(source, "source");
+        HttpRequest.BodyPublisher body;
+        try {
+            body = SourceBodyPublishers.publisher(source);
+        } catch (FileNotFoundException exception) {
+            throw new LightOssValidationException("upload path is not readable", exception);
+        }
+        return context.json(
+                signedUpload.method(),
+                Uris.signedPath(context.baseUri(), signedUpload.path()),
+                ClientContext.AuthMode.NONE,
+                body,
+                null,
+                signedUpload.headers(),
                 201,
                 (data, requestId) -> Parsers.object(context.json(), data, requestId));
     }

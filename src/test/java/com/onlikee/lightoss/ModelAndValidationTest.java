@@ -13,6 +13,7 @@ import com.onlikee.lightoss.model.ExplorerEntry;
 import com.onlikee.lightoss.model.Page;
 import com.onlikee.lightoss.model.RateLimitBackend;
 import com.onlikee.lightoss.model.SignedDownload;
+import com.onlikee.lightoss.model.SignedUpload;
 import com.onlikee.lightoss.model.StorageLimitStatus;
 import com.onlikee.lightoss.model.Visibility;
 import com.onlikee.lightoss.transfer.UploadSource;
@@ -21,6 +22,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -131,9 +133,25 @@ class ModelAndValidationTest {
     @Test
     void signedDownloadRequiresRelativeApiPath() {
         SignedDownload value = new SignedDownload(
-                URI.create("/api/v1/buckets/demo/objects/a?expires=1"), Instant.EPOCH);
-        assertEquals("/api/v1/buckets/demo/objects/a?expires=1", value.path().toString());
+                URI.create("/api/v1/buckets/demo/objects/a?token=x"), Instant.EPOCH);
+        assertEquals("/api/v1/buckets/demo/objects/a?token=x", value.path().toString());
         assertThrows(IllegalArgumentException.class,
                 () -> new SignedDownload(URI.create("https://example.com/a"), Instant.EPOCH));
+    }
+
+    @Test
+    void signedUploadRequiresPutObjectPathAndCompleteHeaders() {
+        Map<String, String> headers = Map.of(
+                "Content-Type", "text/plain",
+                "X-Allow-Overwrite", "false",
+                "X-Object-Visibility", "private",
+                "X-Original-Filename", "a.txt");
+        SignedUpload value = new SignedUpload("PUT",
+                URI.create("/api/v1/buckets/demo/objects/a.txt?token=x"), headers, Instant.EPOCH);
+        assertEquals("PUT", value.method());
+        assertThrows(LightOssValidationException.class,
+                () -> new SignedUpload("POST", value.path(), headers, Instant.EPOCH));
+        assertThrows(LightOssValidationException.class,
+                () -> new SignedUpload("PUT", value.path(), Map.of(), Instant.EPOCH));
     }
 }

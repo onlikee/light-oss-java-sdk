@@ -197,9 +197,24 @@ class HttpContractTest {
             client.sites().delete(1);
             assertWire(server, "DELETE", "/api/v1/sites/1", true);
 
-            server.json(200, "{\"path\":\"/api/v1/buckets/demo/objects/a.txt?expires=1&signature=x\",\"expires_at\":1893456000}");
+            server.json(200, "{\"path\":\"/api/v1/buckets/demo/objects/a.txt?token=x\",\"expires_at\":1893456000}");
             client.signing().signDownload(SigningClient.SignDownloadRequest.of("demo", "a.txt", Duration.ofMinutes(5)));
             assertWire(server, "POST", "/api/v1/sign/download", true);
+
+            server.json(200, "{\"method\":\"PUT\",\"path\":\"/api/v1/buckets/demo/objects/signed.txt?token=x\",\"headers\":{\"Content-Type\":\"text/plain\",\"X-Allow-Overwrite\":\"false\",\"X-Object-Visibility\":\"private\",\"X-Original-Filename\":\"signed.txt\"},\"expires_at\":1893456000}");
+            var signedUpload = client.signing().signUpload(SigningClient.SignUploadRequest
+                    .builder("demo", "signed.txt", 10)
+                    .originalFilename("signed.txt")
+                    .contentType("text/plain")
+                    .build()).data();
+            assertWire(server, "POST", "/api/v1/sign/upload", true);
+
+            server.json(201, OBJECT);
+            client.objects().uploadSigned(signedUpload,
+                    UploadSource.fromBytes("ignored.bin", "application/octet-stream", new byte[] {1, 2}));
+            assertWire(server, "PUT", "/api/v1/buckets/demo/objects/signed.txt?token=x", false);
+            assertEquals("text/plain", server.lastRequest().header("Content-Type"));
+            assertEquals("signed.txt", server.lastRequest().header("X-Original-Filename"));
 
             server.response(200, "domain".getBytes(StandardCharsets.UTF_8), Map.of());
             try (DownloadResponse ignored = client.sites().downloadDomain(server.baseUri().resolve("custom/path"))) {
