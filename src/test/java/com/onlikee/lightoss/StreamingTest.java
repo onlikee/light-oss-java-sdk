@@ -6,13 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.onlikee.lightoss.exception.LightOssTransportException;
 import com.onlikee.lightoss.exception.LightOssValidationException;
+import com.onlikee.lightoss.model.SignedUpload;
 import com.onlikee.lightoss.transfer.ContentMetadata;
 import com.onlikee.lightoss.transfer.DownloadResponse;
 import com.onlikee.lightoss.transfer.UploadSource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -122,6 +126,31 @@ class StreamingTest {
                             ObjectClient.UploadObjectRequest.builder("demo", "broken.bin", source).build()));
             assertEquals("upload-id", exception.requestId().orElseThrow());
         }
+    }
+
+    @Test
+    void signedUploadStreamsUnknownLengthWithoutBearerOrSourceHeaders() throws Exception {
+        byte[] content = new byte[4 * 1024 * 1024];
+        AtomicReference<TrackingInputStream> opened = new AtomicReference<>();
+        UploadSource source = UploadSource.fromInputStream("ignored.bin", "application/octet-stream", () -> {
+            TrackingInputStream stream = new TrackingInputStream(content);
+            opened.set(stream);
+            return stream;
+        });
+        SignedUpload signed = new SignedUpload("PUT", URI.create("/api/v1/buckets/demo/objects/a?token=x"),
+                Map.of("Content-Type", "text/plain", "X-Original-Filename", "signed.txt"), Instant.MAX);
+        try (TestHttpServer server = new TestHttpServer();
+             LightOssClient client = LightOssClient.builder(server.baseUri()).bearerToken("token").build()) {
+            server.json(201, OBJECT);
+            client.objects().uploadSigned(signed, source);
+            assertEquals(null, server.lastRequest().header("Authorization"));
+            assertEquals(null, server.lastRequest().header("Content-Length"));
+            assertEquals("text/plain", server.lastRequest().header("Content-Type"));
+            assertEquals("signed.txt", server.lastRequest().header("X-Original-Filename"));
+            assertEquals(content.length, server.lastRequest().body().length);
+        }
+        assertTrue(opened.get().closed.get());
+        assertTrue(opened.get().maximumReadRequest < content.length);
     }
 
     private static final class TrackingInputStream extends ByteArrayInputStream {

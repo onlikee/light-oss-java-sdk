@@ -1,5 +1,6 @@
 package com.onlikee.lightoss.model;
 
+import com.onlikee.lightoss.internal.Uris;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Objects;
@@ -13,21 +14,7 @@ import java.util.Objects;
 public record SignedDownload(URI path, Instant expiresAt) {
     /** Creates a signed-download result. */
     public SignedDownload {
-        path = Objects.requireNonNull(path, "path");
+        path = Uris.requireSignedObjectPath(path);
         expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
-        if (path.isAbsolute() || path.getRawAuthority() != null || path.getRawFragment() != null
-                || path.getRawPath() == null || !path.getRawPath().startsWith("/api/v1/buckets/")
-                || !hasToken(path)) {
-            throw new IllegalArgumentException("signed download path must be a relative Light OSS object path");
-        }
-    }
-
-    private static boolean hasToken(URI path) {
-        String query = path.getRawQuery();
-        if (query == null) {
-            return false;
-        }
-        return java.util.Arrays.stream(query.split("&"))
-                .anyMatch(value -> value.startsWith("token=") && value.length() > "token=".length());
     }
 }

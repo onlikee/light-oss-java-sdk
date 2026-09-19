@@ -96,6 +96,10 @@ public final class Uris {
     }
 
     public static URI signedPath(URI baseUri, URI signedPath) {
+        return URI.create(baseUri.toString() + requireSignedObjectPath(signedPath));
+    }
+
+    public static URI requireSignedObjectPath(URI signedPath) {
         if (signedPath == null || signedPath.isAbsolute() || signedPath.getRawAuthority() != null || signedPath.getRawFragment() != null) {
             throw new LightOssValidationException("signedPath must be a relative Light OSS path");
         }
@@ -103,7 +107,12 @@ public final class Uris {
         if (path == null || !path.startsWith("/api/v1/buckets/") || !path.contains("/objects/")) {
             throw new LightOssValidationException("signedPath is not a Light OSS object path");
         }
-        return URI.create(baseUri.toString() + signedPath);
+        String query = signedPath.getRawQuery();
+        if (query == null || java.util.Arrays.stream(query.split("&"))
+                .noneMatch(value -> value.startsWith("token=") && value.length() > "token=".length())) {
+            throw new LightOssValidationException("signedPath must contain a signed token");
+        }
+        return signedPath;
     }
 
     public static URI publicSiteUri(URI uri) {

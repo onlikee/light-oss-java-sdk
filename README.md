@@ -117,7 +117,10 @@ var object = client.objects().uploadSigned(signedUpload, source).data();
 ```
 
 The signed maximum is an upper bound, so unknown-length streaming sources remain supported when
-the issuer selects an appropriate limit.
+the issuer selects an appropriate limit. Pass the original filename as raw text, not URL-encoded
+text: literal percent sequences are preserved. The SDK forwards every returned signed header,
+including additional headers introduced by the server, without replacing them with source metadata.
+Signed headers cannot carry credentials or override HTTP transport framing.
 
 Signing returns a relative URI. Passing it to `downloadSigned` deliberately suppresses Bearer
 credentials:

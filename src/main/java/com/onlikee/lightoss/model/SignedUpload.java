@@ -2,11 +2,12 @@ package com.onlikee.lightoss.model;
 
 import com.onlikee.lightoss.exception.LightOssValidationException;
 import com.onlikee.lightoss.internal.Checks;
+import com.onlikee.lightoss.internal.Uris;
 import java.net.URI;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -18,8 +19,9 @@ import java.util.TreeMap;
  * @param expiresAt authorization expiry time
  */
 public record SignedUpload(String method, URI path, Map<String, String> headers, Instant expiresAt) {
-    private static final java.util.List<String> REQUIRED_HEADERS = java.util.List.of(
-            "Content-Type", "X-Allow-Overwrite", "X-Object-Visibility", "X-Original-Filename");
+    private static final Set<String> RESERVED_HEADERS = Set.of(
+            "authorization", "proxy-authorization", "cookie", "host", "content-length",
+            "connection", "expect", "upgrade", "transfer-encoding", "trailer");
 
     /** Creates and validates a signed-upload result. */
     public SignedUpload {
@@ -27,36 +29,27 @@ public record SignedUpload(String method, URI path, Map<String, String> headers,
         if (!method.equals("PUT")) {
             throw new LightOssValidationException("signed upload method must be PUT");
         }
-        path = Objects.requireNonNull(path, "path");
-        if (path.isAbsolute() || path.getRawAuthority() != null || path.getRawFragment() != null
-                || path.getRawPath() == null || !path.getRawPath().startsWith("/api/v1/buckets/")
-                || !path.getRawPath().contains("/objects/") || !hasToken(path)) {
-            throw new LightOssValidationException("signed upload path must be a relative Light OSS object path");
-        }
+        path = Uris.requireSignedObjectPath(path);
         Objects.requireNonNull(headers, "headers");
-        Map<String, String> caseInsensitive = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        caseInsensitive.putAll(headers);
-        if (caseInsensitive.size() != REQUIRED_HEADERS.size()) {
-            throw new LightOssValidationException("signed upload headers are invalid");
+        if (headers.isEmpty()) {
+            throw new LightOssValidationException("signed upload headers must not be empty");
         }
-        Map<String, String> normalized = new LinkedHashMap<>();
-        for (String name : REQUIRED_HEADERS) {
-            String value = caseInsensitive.get(name);
-            if (value == null) {
-                throw new LightOssValidationException("signed upload response is missing header " + name);
+        Map<String, String> validated = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            String name = Objects.requireNonNull(entry.getKey(), "header name");
+            if (!name.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]+")
+                    || RESERVED_HEADERS.contains(name.toLowerCase(java.util.Locale.ROOT))) {
+                throw new LightOssValidationException("invalid signed upload header: " + name);
             }
-            normalized.put(name, Checks.headerValue(value, name));
+            String value = Objects.requireNonNull(entry.getValue(), name);
+            if (value.chars().anyMatch(character -> (character < 32 && character != '\t') || character == 127)) {
+                throw new LightOssValidationException("invalid signed upload header value: " + name);
+            }
+            if (validated.putIfAbsent(name, value) != null) {
+                throw new LightOssValidationException("duplicate signed upload header: " + name);
+            }
         }
-        headers = Map.copyOf(normalized);
+        headers = Map.copyOf(validated);
         expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
-    }
-
-    private static boolean hasToken(URI path) {
-        String query = path.getRawQuery();
-        if (query == null) {
-            return false;
-        }
-        return java.util.Arrays.stream(query.split("&"))
-                .anyMatch(value -> value.startsWith("token=") && value.length() > "token=".length());
     }
 }

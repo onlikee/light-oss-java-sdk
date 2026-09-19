@@ -12,7 +12,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 
-/** Signed-download operations. */
+/** Signed download and upload operations. */
 public final class SigningClient {
     private final ClientContext context;
 
@@ -61,15 +61,15 @@ public final class SigningClient {
                 Map.of(),
                 200,
                 (data, requestId) -> {
-                    var headers = context.json().requiredObject(data, "headers", requestId);
+                    var headerNode = context.json().requiredObject(data, "headers", requestId);
+                    Map<String, String> headers = new java.util.LinkedHashMap<>();
+                    for (var entry : headerNode.properties()) {
+                        headers.put(entry.getKey(), context.json().requiredText(headerNode, entry.getKey(), requestId));
+                    }
                     return new SignedUpload(
                             context.json().requiredText(data, "method", requestId),
                             URI.create(context.json().requiredText(data, "path", requestId)),
-                            Map.of(
-                                    "Content-Type", context.json().requiredText(headers, "Content-Type", requestId),
-                                    "X-Allow-Overwrite", context.json().requiredText(headers, "X-Allow-Overwrite", requestId),
-                                    "X-Object-Visibility", context.json().requiredText(headers, "X-Object-Visibility", requestId),
-                                    "X-Original-Filename", context.json().requiredText(headers, "X-Original-Filename", requestId)),
+                            headers,
                             Instant.ofEpochSecond(context.json().requiredLong(data, "expires_at", requestId)));
                 });
     }

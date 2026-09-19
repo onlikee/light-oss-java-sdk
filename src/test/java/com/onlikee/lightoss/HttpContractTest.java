@@ -3,14 +3,20 @@ package com.onlikee.lightoss;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.onlikee.lightoss.exception.LightOssApiException;
+import com.onlikee.lightoss.exception.LightOssProtocolException;
 import com.onlikee.lightoss.model.EntryType;
+import com.onlikee.lightoss.model.SignedUpload;
 import com.onlikee.lightoss.model.Visibility;
 import com.onlikee.lightoss.transfer.DownloadResponse;
 import com.onlikee.lightoss.transfer.UploadSource;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -201,7 +207,7 @@ class HttpContractTest {
             client.signing().signDownload(SigningClient.SignDownloadRequest.of("demo", "a.txt", Duration.ofMinutes(5)));
             assertWire(server, "POST", "/api/v1/sign/download", true);
 
-            server.json(200, "{\"method\":\"PUT\",\"path\":\"/api/v1/buckets/demo/objects/signed.txt?token=x\",\"headers\":{\"Content-Type\":\"text/plain\",\"X-Allow-Overwrite\":\"false\",\"X-Object-Visibility\":\"private\",\"X-Original-Filename\":\"signed.txt\"},\"expires_at\":1893456000}");
+            server.json(200, "{\"method\":\"PUT\",\"path\":\"/api/v1/buckets/demo/objects/signed.txt?token=x\",\"headers\":{\"Content-Type\":\"text/plain\",\"X-Allow-Overwrite\":\"false\",\"X-Object-Visibility\":\"private\",\"X-Original-Filename\":\"signed.txt\",\"X-Checksum-Sha256\":\"abc\",\"Accept\":\"application/json\"},\"expires_at\":1893456000}");
             var signedUpload = client.signing().signUpload(SigningClient.SignUploadRequest
                     .builder("demo", "signed.txt", 10)
                     .originalFilename("signed.txt")
@@ -215,6 +221,9 @@ class HttpContractTest {
             assertWire(server, "PUT", "/api/v1/buckets/demo/objects/signed.txt?token=x", false);
             assertEquals("text/plain", server.lastRequest().header("Content-Type"));
             assertEquals("signed.txt", server.lastRequest().header("X-Original-Filename"));
+            assertEquals("abc", server.lastRequest().header("X-Checksum-Sha256"));
+            assertEquals(List.of("application/json"), server.lastRequest().headers().entrySet().stream()
+                    .filter(entry -> entry.getKey().equalsIgnoreCase("Accept")).findFirst().orElseThrow().getValue());
 
             server.response(200, "domain".getBytes(StandardCharsets.UTF_8), Map.of());
             try (DownloadResponse ignored = client.sites().downloadDomain(server.baseUri().resolve("custom/path"))) {
@@ -225,6 +234,25 @@ class HttpContractTest {
             server.response(200, new byte[0], Map.of());
             client.sites().headDomain(server.baseUri().resolve("custom/path"));
             assertWire(server, "HEAD", "/custom/path", false);
+        }
+    }
+
+    @Test
+    void signedUploadUsesUnifiedErrorsAndValidatesAdditionalResponseHeaders() throws Exception {
+        try (TestHttpServer server = new TestHttpServer(); LightOssClient client = client(server)) {
+            SignedUpload signed = new SignedUpload("PUT", URI.create("/api/v1/buckets/demo/objects/a?token=x"),
+                    Map.of("Content-Type", "text/plain"), Instant.MAX);
+            server.error(413, "payload_too_large", "too large");
+            LightOssApiException error = assertThrows(LightOssApiException.class,
+                    () -> client.objects().uploadSigned(signed, UploadSource.fromBytes("a", "text/plain", new byte[] {1})));
+            assertEquals(413, error.statusCode());
+            assertEquals("payload_too_large", error.code());
+            assertTrue(error.requestId().isPresent());
+            assertNull(server.lastRequest().header("Authorization"));
+
+            server.json(200, "{\"headers\":{\"X-Checksum\":123}}");
+            assertThrows(LightOssProtocolException.class,
+                    () -> client.signing().signUpload(SigningClient.SignUploadRequest.builder("demo", "a", 1).build()));
         }
     }
 

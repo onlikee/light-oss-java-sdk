@@ -243,7 +243,8 @@ public final class ClientContext implements AutoCloseable {
         if (contentType != null) {
             builder.header("Content-Type", contentType);
         }
-        headers.forEach((name, value) -> builder.header(name, Checks.headerValue(value, name)));
+        // Request-specific headers take precedence over SDK defaults and are sent once.
+        headers.forEach(builder::setHeader);
         if (authMode != AuthMode.NONE) {
             String token = token(authMode == AuthMode.REQUIRED, requestId);
             if (token != null) {

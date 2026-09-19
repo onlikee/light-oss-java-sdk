@@ -135,12 +135,12 @@ class ModelAndValidationTest {
         SignedDownload value = new SignedDownload(
                 URI.create("/api/v1/buckets/demo/objects/a?token=x"), Instant.EPOCH);
         assertEquals("/api/v1/buckets/demo/objects/a?token=x", value.path().toString());
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(LightOssValidationException.class,
                 () -> new SignedDownload(URI.create("https://example.com/a"), Instant.EPOCH));
     }
 
     @Test
-    void signedUploadRequiresPutObjectPathAndCompleteHeaders() {
+    void signedUploadValidatesMethodPathAndSafeHeaders() {
         Map<String, String> headers = Map.of(
                 "Content-Type", "text/plain",
                 "X-Allow-Overwrite", "false",
@@ -153,5 +153,20 @@ class ModelAndValidationTest {
                 () -> new SignedUpload("POST", value.path(), headers, Instant.EPOCH));
         assertThrows(LightOssValidationException.class,
                 () -> new SignedUpload("PUT", value.path(), Map.of(), Instant.EPOCH));
+    }
+
+    @Test
+    void signedUploadPreservesAdditionalHeadersAndRejectsUnsafeOnes() {
+        URI path = URI.create("/api/v1/buckets/demo/objects/a.txt?token=x");
+        Map<String, String> headers = Map.of("Content-Type", "text/plain", "X-Checksum-Sha256", "abc");
+        assertEquals(headers, new SignedUpload("PUT", path, headers, Instant.EPOCH).headers());
+        for (String name : List.of("Authorization", "Cookie", "Host", "Content-Length", "Transfer-Encoding", "bad name")) {
+            assertThrows(LightOssValidationException.class,
+                    () -> new SignedUpload("PUT", path, Map.of(name, "value"), Instant.EPOCH));
+        }
+        assertThrows(LightOssValidationException.class,
+                () -> new SignedUpload("PUT", path, Map.of("X-Value", "a\r\nb"), Instant.EPOCH));
+        assertThrows(LightOssValidationException.class,
+                () -> new SignedUpload("PUT", path, Map.of("X-Value", "a", "x-value", "b"), Instant.EPOCH));
     }
 }
