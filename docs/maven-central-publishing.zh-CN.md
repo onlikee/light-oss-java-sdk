@@ -3,7 +3,7 @@
 本项目发布坐标为：
 
 ```text
-com.onlikee:light-oss-sdk:0.1.0
+com.onlikee:light-oss-sdk:0.3.0
 ```
 
 普通构建不会签名或上传。只有显式启用 `central-release` Profile 才会生成源码与 Javadoc JAR、使用 Bouncy Castle 纯 Java signer 签名，并调用 Maven Central Publisher Portal。该 Profile 保留 `deploy` 生命周期阶段以触发 Central Publisher，同时跳过传统 `maven-deploy-plugin`，因此不需要配置 `<distributionManagement>`。
@@ -54,7 +54,7 @@ mvn.cmd -B -Pcentral-release clean verify
 
 ## 上传与人工发布
 
-在 SDK 功能完成、测试通过且确认版本 `0.1.0` 从未发布后，执行：
+在 SDK 功能完成、测试通过且确认版本 `0.3.0` 从未发布后，执行：
 
 ```powershell
 mvn.cmd -B -Pcentral-release clean deploy

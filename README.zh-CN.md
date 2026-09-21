@@ -3,7 +3,7 @@
 [English documentation](README.md)
 
 面向 Light OSS HTTP API 的 Java 21 同步 SDK。本库对应 Light OSS 的 Go/Gin API，不是 Amazon
-S3 客户端。0.1.0 覆盖 38 个 OpenAPI 操作，以及公开站点自定义域名的 GET/HEAD 路由。
+S3 客户端。0.3.0 覆盖 39 个 OpenAPI 操作，以及公开站点自定义域名的 GET/HEAD 路由。
 
 ## 环境与依赖
 
@@ -14,7 +14,7 @@ S3 客户端。0.1.0 覆盖 38 个 OpenAPI 操作，以及公开站点自定义�
 <dependency>
   <groupId>com.onlikee</groupId>
   <artifactId>light-oss-sdk</artifactId>
-  <version>0.1.0</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -93,7 +93,25 @@ var result = client.objects().uploadBatch(
 
 Explorer 与回收站批量接口会保留后端的 `failedItems` 逐项结果，不会擅自改成 SDK 侧整批失败。
 
-## 签名下载与公开站点
+## 签名上传、下载与公开站点
+
+签名上传复用普通上传的流式数据源和对象响应。SDK 使用签名接口返回的路径和请求头，
+不会附加客户端配置的 Bearer Token：
+
+```java
+var source = UploadSource.fromPath(Path.of("report.pdf"), "application/pdf");
+var signedUpload = client.signing().signUpload(
+        SigningClient.SignUploadRequest.builder("documents", "reports/2026.pdf", source.contentLength().orElseThrow())
+                .originalFilename(source.filename())
+                .contentType(source.contentType())
+                .build()).data();
+var object = client.objects().uploadSigned(signedUpload, source).data();
+```
+
+签名中的最大大小是上传上限，因此签发方设置适当上限后，也可以使用长度未知的流式数据源。
+原始文件名应直接传入未经 URL 编码的文本，字面百分号序列会被保留。SDK 转发服务端返回的
+所有签名请求头（包括新增请求头），不会用数据源元数据覆盖；签名请求头不能携带凭据或覆盖
+HTTP 传输分帧设置。
 
 签名接口返回相对 URI。把它交给 `downloadSigned` 时，SDK 明确不会附加 Bearer：
 
@@ -169,7 +187,7 @@ mvn.cmd -B clean package
 
 ## 兼容性
 
-0.1.x 将已经发布的公共签名视为稳定合同。除安全问题或后端破坏性合同变化外，不删除或不兼容地
+0.3.x 将已经发布的公共签名视为稳定合同。除安全问题或后端破坏性合同变化外，不删除或不兼容地
 修改公共 API。
 
 ## 许可证

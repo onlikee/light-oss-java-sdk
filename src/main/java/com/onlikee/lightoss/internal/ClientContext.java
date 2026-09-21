@@ -235,7 +235,7 @@ public final class ClientContext implements AutoCloseable {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .method(method, body)
                 .header("Accept", "application/json, application/octet-stream;q=0.9, */*;q=0.1")
-                .header("User-Agent", "light-oss-sdk/0.1.0")
+                .header("User-Agent", "light-oss-sdk/0.3.0")
                 .header("X-Request-ID", requestId);
         if (requestTimeout != null) {
             builder.timeout(requestTimeout);
